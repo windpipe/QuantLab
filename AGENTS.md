@@ -10,3 +10,5 @@ Start every session by reading docs/windpipe/PROJECT_STATE.md, NEXT_TASK.md, DEC
 - Never commit market datasets, API secrets, personal information or private strategies. Bind local services to loopback by default.
 - Before editing, inspect current branch/head and worktree; do not overwrite unrelated changes. Run relevant tests and record real results, not assumed successes.
 - At end of each work session, update PROJECT_STATE.md, NEXT_TASK.md and WORKLOG.md; update DECISIONS.md if decisions change. Record commit/PR links, unresolved issues, reproduction commands and actual test status. Keep documentation and code consistent.
+
+For local Codex sessions, read docs/windpipe/CODEX_HANDOFF.md and BASELINE_001.md. The user selected E: for local work; suggested defaults E:/Projects/QuantLab and E:/QuantLabData remain configurable. Verify actual local paths and never assume the checkout exists. Baseline #001 must use real exchange data; report blockers, not fabricated returns.

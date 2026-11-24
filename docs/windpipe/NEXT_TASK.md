@@ -8,3 +8,6 @@
 6. Update PROJECT_STATE, WORKLOG and NEXT_TASK with actual completion status, commit/PR, and the next actionable work. P1 begins after baseline findings are recorded; distinguish observed facts from proposals.
 
 Acceptance: reproducible baseline commands and results, verified source map, identified extension points, no unintended upstream modifications. If environment cannot run tests, report not run and explain why.
+
+## First local acceptance scenario
+Verify E: paths with user, perform P0 audit, and run Baseline #001 against actual Binance data as an independent reference test where feasible. Record data provenance, missing intervals, exact execution policy and measured results. Do not report the production Coverage Map as implemented.

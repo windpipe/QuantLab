@@ -11,3 +11,8 @@
 
 ## Entry template
 Date / branch / goal; changes and files; commands and actual results; commit/PR; decisions; blockers; next task. Never report unexecuted tests as passed.
+
+## 2026-11-24 — Codex continuation
+- User selected E: for local development. Suggested paths E:/Projects/QuantLab and E:/QuantLabData.
+- BTC triple SMA baseline agreed; actual exchange-data run pending, no measured returns.
+- Added local setup and baseline contracts. Local files and environment not verified from chat.
