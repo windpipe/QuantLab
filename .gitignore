@@ -14,7 +14,9 @@ __pycache__/
 .env.*
 !.env.example
 quantlab.local.*
-data/
+/data/
 *.parquet
 *.duckdb*
 .test-tmp/
+.pnpm-store/
+.tools/
