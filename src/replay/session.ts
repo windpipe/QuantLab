@@ -1,6 +1,23 @@
 import type { KLineData } from 'klinecharts';
 
-export const REPLAY_SPEEDS = [1, 2, 3, 5, 10] as const;
+export const REPLAY_SPEEDS = [0.25, 0.5, 1, 2, 3, 5, 10, 20] as const;
+
+export function replaySpeed(speed: number): number {
+  if (!Number.isFinite(speed)) return 1;
+  return REPLAY_SPEEDS.reduce<number>((best, value) => Math.abs(value - speed) < Math.abs(best - speed) ? value : best, 1);
+}
+
+/** datetime-local is deliberately interpreted as KST, independent of browser zone. */
+export function replayDate(time: number): string {
+  return new Date(time + 9 * 3600000).toISOString().slice(0, 16);
+}
+
+export function replayTime(value: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) throw new Error('시작 날짜와 시간을 입력해주세요.');
+  const time = Date.parse(`${value}:00+09:00`);
+  if (!Number.isFinite(time) || replayDate(time) !== value) throw new Error('유효한 시작 날짜와 시간을 입력해주세요.');
+  return time;
+}
 
 /** Index of the bar that contains `time`: the last bar opening at or before it. -1 if none. */
 export function indexAtTime(bars: readonly KLineData[], time: number): number {
@@ -70,6 +87,13 @@ export class ReplaySession {
     return this.remaining === 0;
   }
 
+  /** Playback progress excludes history already visible before the chosen start. */
+  progress(): { elapsed: number; total: number; percent: number; endTime: number } {
+    const total = this.bars.length - 1 - this.startIndex;
+    const elapsed = this.cursor - this.startIndex;
+    return { elapsed, total, percent: elapsed / total * 100, endTime: this.bars[this.bars.length - 1].timestamp };
+  }
+
   /** Reveals up to `count` bars and returns them in order. Returns [] at the end. */
   step(count = 1): KLineData[] {
     const n = Math.max(0, Math.min(Math.floor(count), this.remaining));
@@ -81,6 +105,6 @@ export class ReplaySession {
 
 /** Interval between automatic steps for a speed (bars per second). */
 export function stepInterval(speed: number): number {
-  const s = Math.min(10, Math.max(1, Math.round(speed)));
+  const s = replaySpeed(speed);
   return Math.round(1000 / s);
 }

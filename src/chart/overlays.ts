@@ -62,6 +62,24 @@ export function registerCustomOverlays(): void {
   if (registered) return;
   registered = true;
 
+  registerOverlay<{ side: string; price: number; quantity: number }>({
+    name: 'quantlabFill', totalStep: 2, needDefaultPointFigure: false,
+    needDefaultXAxisFigure: false, needDefaultYAxisFigure: false,
+    createPointFigures: ({ coordinates, overlay }): OverlayFigure[] => {
+      const p = coordinates[0], data = overlay.extendData;
+      if (!p || !data) return [];
+      const buy = data.side === 'BUY';
+      const color = buy ? '#2962ff' : '#e91e63';
+      const labelY = p.y + (buy ? 30 : -30);
+      return [
+        { type: 'circle', ignoreEvent: true, attrs: { x: p.x, y: p.y, r: 4 }, styles: { style: 'fill', color } },
+        { type: 'line', ignoreEvent: true, attrs: { coordinates: [{ x: p.x, y: p.y }, { x: p.x, y: labelY }] }, styles: { color, size: 1 } },
+        { type: 'text', ignoreEvent: true, attrs: { x: p.x, y: labelY, text: `${buy ? '▲ BUY' : '▼ SELL'} ${data.price.toFixed(2)}`, align: 'center', baseline: 'middle' },
+          styles: { color: '#fff', size: 11, backgroundColor: color, borderRadius: 3, paddingLeft: 5, paddingRight: 5, paddingTop: 3, paddingBottom: 3 } },
+      ];
+    },
+  });
+
   registerOverlay({
     name: 'rectangle',
     totalStep: 3,

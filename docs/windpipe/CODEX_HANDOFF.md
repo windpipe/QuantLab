@@ -38,3 +38,6 @@ Data root includes catalog, raw, ohlcv, cache, features, backtest_results, model
 
 ## Start prompt
 Read AGENTS.md, PROJECT_STATE.md, NEXT_TASK.md, DECISIONS.md, WORKLOG.md, BASELINE_001.md and relevant design documents. Verify E: paths, inspect actual source and run P0 baseline audit. Execute BTC triple SMA reference test using real data where feasible. Record results, blockers, commit/PR, and next task. No live trading.
+
+## Current implementation handoff — 2026-11-27
+Use codex/bootstrap-market-engine for the implementation until reviewed into develop. Read PROJECT_STATE and ENGINE_RUNBOOK for verified commands, measured results and limitations. Commits c91bf53 (market engine) and 3b338e9 (UI/replay). Datasets and result artifacts are not in Git; another computer must collect real data or receive separately authorized data copies. Existing MCP controls the loaded-chart script engine; it does not yet launch the independent annual research UI runner. MCP replay input remains 1–10 despite UI 0.25–20. Latest visual verification remains pending.

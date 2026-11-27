@@ -220,14 +220,27 @@
 }
 
 .replay-bar[hidden],
+.replay-position[hidden],
 .replay-hint[hidden] {
   display: none;
 }
+
+.replay-position { position: absolute; left: 12px; top: 48px; z-index: 19; display: grid; gap: 7px; max-width: calc(100% - 24px); padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); font-variant-numeric: tabular-nums; }
+.rp-current-time { font-size: 14px; color: var(--accent); }
+.rp-progress-label { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.replay-position progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.rp-position-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 11px; }
+.rp-position-actions label { display: inline-flex; align-items: center; gap: 5px; }
+.rp-position-actions .btn { padding: 3px 8px; font-size: 11px; }
 
 .rp-title {
   font-weight: 600;
   margin-right: 6px;
 }
+
+.rp-start-form { display: grid; gap: 14px; }
+.rp-start-form label { display: grid; gap: 6px; }
+.rp-start-form input, .rp-start-form select { padding: 8px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 5px; font: inherit; }
 
 .rp-btn {
   display: inline-flex;

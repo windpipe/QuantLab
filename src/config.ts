@@ -8,7 +8,7 @@ const VERSION = '0.11.0';
  */
 export const APP = {
   id: 'kandle',
-  name: 'Kandle',
+  name: 'QuantLab',
   tagline: 'Open-source charts for crypto, stocks and forex',
   version: VERSION,
   repoUrl: 'https://github.com/Kernel-Hunter/kandle',

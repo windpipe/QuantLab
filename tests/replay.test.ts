@@ -1,10 +1,38 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DataLoader, DataLoaderGetBarsParams, KLineData } from 'klinecharts';
 import { SwitchingLoader } from '../src/replay/loader';
-import { ReplaySession, indexAtTime, stepInterval } from '../src/replay/session';
+import { ReplaySession, indexAtTime, stepInterval, replayDate, replayTime } from '../src/replay/session';
+import { replayHistory } from '../src/replay/history';
 
 const bar = (i: number): KLineData => ({ timestamp: i * 1000, open: i, high: i + 1, low: i - 1, close: i + 0.5, volume: 10 });
 const bars = (n: number) => Array.from({ length: n }, (_, i) => bar(i));
+
+it('interprets datetime entry as KST and rejects invalid calendar dates', () => {
+  expect(replayTime('2025-11-24T00:00')).toBe(Date.UTC(2025, 10, 23, 15));
+  expect(replayDate(Date.UTC(2025, 10, 23, 15))).toBe('2025-11-24T00:00');
+  expect(() => replayTime('2026-02-30T12:00')).toThrow();
+  expect(() => replayTime('')).toThrow();
+});
+
+it('loads a full year of local history beyond the old 10,000-bar cap', async () => {
+  const fetcher = vi.fn(async (before: number, limit: number) => {
+    const first = Math.max(0, before / 1000 - limit);
+    return Array.from({ length: before / 1000 - first }, (_, i) => ({
+      time: (first + i) * 1000, open: 1, high: 1, low: 1, close: 1, volume: 1 }));
+  });
+  const result = await replayHistory([bar(105120), bar(105121)], fetcher, true, 0);
+  expect(fetcher).toHaveBeenCalledTimes(11);
+  expect(result).toHaveLength(105122);
+  expect(result[0].timestamp).toBe(0);
+  expect(result[result.length - 1].timestamp).toBe(105121000);
+});
+
+it('rejects overlapping history and stops paging when data is unavailable', async () => {
+  await expect(replayHistory([bar(10), bar(11)], async () => [{ time: 10000, open: 1, high: 1, low: 1, close: 1, volume: 1 }], true, 0)).rejects.toThrow('중복');
+  const fetcher = vi.fn(async () => []);
+  expect(await replayHistory([bar(10), bar(11)], fetcher, true, 0)).toHaveLength(2);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
 
 describe('indexAtTime', () => {
   it('finds the bar containing a time', () => {
@@ -29,10 +57,13 @@ describe('ReplaySession', () => {
 
   it('steps forward and stops at the end', () => {
     const s = new ReplaySession(bars(10), 4);
+    expect(s.progress()).toEqual({ elapsed: 0, total: 5, percent: 0, endTime: 9000 });
     expect(s.step().map((b) => b.timestamp)).toEqual([5000]);
+    expect(s.progress().percent).toBe(20);
     expect(s.step(3).map((b) => b.timestamp)).toEqual([6000, 7000, 8000]);
     expect(s.step(50).map((b) => b.timestamp)).toEqual([9000]);
     expect(s.done).toBe(true);
+    expect(s.progress()).toEqual({ elapsed: 5, total: 5, percent: 100, endTime: 9000 });
     expect(s.step()).toEqual([]);
     expect(s.visible()).toHaveLength(10);
   });
@@ -56,8 +87,11 @@ describe('ReplaySession', () => {
   it('maps speed to an interval', () => {
     expect(stepInterval(1)).toBe(1000);
     expect(stepInterval(10)).toBe(100);
-    expect(stepInterval(50)).toBe(100);
-    expect(stepInterval(0)).toBe(1000);
+    expect(stepInterval(50)).toBe(50);
+    expect(stepInterval(0.25)).toBe(4000);
+    expect(stepInterval(0.5)).toBe(2000);
+    expect(stepInterval(0)).toBe(4000);
+    expect(stepInterval(NaN)).toBe(1000);
   });
 });
 

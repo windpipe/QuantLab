@@ -24,7 +24,7 @@ export const DRAWING_TYPES = [
 ] as const;
 
 /** Data source ids, matching SOURCES in src/data/sources.ts. */
-export const EXCHANGES = ['binance', 'coinbase', 'bybit', 'okx', 'kraken', 'twelvedata', 'alpaca', 'polygon', 'csv'] as const;
+export const EXCHANGES = ['binance', 'coinbase', 'bybit', 'okx', 'kraken', 'twelvedata', 'alpaca', 'polygon', 'csv', 'quantlab'] as const;
 
 export const ALERT_CONDITIONS = ['crosses', 'crosses_up', 'crosses_down', 'touches'] as const;
 

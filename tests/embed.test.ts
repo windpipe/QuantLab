@@ -49,7 +49,7 @@ describe('embed URLs', () => {
 
   it('say when the viewer would need an API key, and refuse CSV charts', async () => {
     const keyed = await makeEmbedLink(snapshot({ source: 'twelvedata', symbol: 'AAPL', layout: { ...snapshot().layout, count: 1 } }), DEFAULT_INCLUDE, DEFAULT_EMBED_OPTIONS, PAGE);
-    expect(keyed.notes).toEqual(["Charts from Twelve Data need the viewer's own API key, so the embed shows a note with a link to Kandle in their place."]);
+    expect(keyed.notes).toEqual(["Charts from Twelve Data need the viewer's own API key, so the embed shows a note with a link to QuantLab in their place."]);
     // The default layout in the fixture has a Twelve Data chart too.
     const layout = await makeEmbedLink(snapshot(), { ...DEFAULT_INCLUDE, layout: true }, DEFAULT_EMBED_OPTIONS, PAGE);
     expect(layout.notes.join(' ')).toMatch(/Charts from Twelve Data need/);
@@ -76,7 +76,7 @@ describe('framing', () => {
 describe('iframe snippet', () => {
   it('is a lazy, borderless iframe with a title', async () => {
     const link = await makeEmbedLink(snapshot(), DEFAULT_INCLUDE, DEFAULT_EMBED_OPTIONS, PAGE);
-    expect(link.html).toBe(`<iframe src="${link.url}" title="Kandle chart: ETHUSDT 4H on Binance" width="640" height="400" style="border:0" loading="lazy"></iframe>`);
+    expect(link.html).toBe(`<iframe src="${link.url}" title="QuantLab chart: ETHUSDT 4H on Binance" width="640" height="400" style="border:0" loading="lazy"></iframe>`);
     const full = await makeEmbedLink(snapshot(), DEFAULT_INCLUDE, parseEmbedOptions({ width: '100%', height: 300 }), PAGE);
     expect(full.html).toContain('width="100%" height="300"');
   });
@@ -92,7 +92,7 @@ describe('iframe snippet', () => {
     // A symbol that never went through the link checks is escaped all the same.
     const link = await makeEmbedLink(snapshot({ symbol: evil }), DEFAULT_INCLUDE, DEFAULT_EMBED_OPTIONS, PAGE);
     expect(link.html.match(/</g)).toHaveLength(2);
-    expect(link.html).toContain(`title="Kandle chart: ${escapeAttribute(evil)} 4H on Binance"`);
+    expect(link.html).toContain(`title="QuantLab chart: ${escapeAttribute(evil)} 4H on Binance"`);
   });
 
   it('checks sizes and theme from automation', () => {

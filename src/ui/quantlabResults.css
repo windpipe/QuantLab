@@ -1,0 +1,47 @@
+.ql-results { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--panel); }
+.ql-results[hidden], .ql-result-body[hidden] { display: none; }
+.ql-result-toggle { display: flex; justify-content: space-between; width: 100%; padding: 10px 16px; border: 0; background: var(--panel-2); color: var(--text); font-weight: 600; text-align: left; }
+.ql-result-toggle:hover { background: var(--hover); }
+.ql-result-body { height: min(52vh, 600px); overflow: auto; padding: 16px 20px; }
+.ql-result-title { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
+.ql-run-toolbar { display: flex; align-items: center; gap: 12px; }
+.ql-run-toolbar label { display: flex; align-items: center; gap: 8px; }
+.ql-run-description, .ql-run-status { margin: 8px 0; color: var(--muted); font-size: 11px; }
+.ql-run-settings { margin-bottom: 8px; }
+.ql-run-settings summary { cursor: pointer; font-size: 12px; }
+.ql-form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 0; }
+.ql-form-row[hidden] { display: none; }
+.ql-form-row > label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 11px; }
+.ql-form-row > label.ql-chart-check { flex-direction: row; align-items: center; }
+.ql-form-row input:not([type='checkbox']) { width: 145px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; color: var(--text); background: var(--bg); }
+.ql-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.ql-metric { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; }
+.ql-metric span, .ql-section-label, .ql-axis, .ql-result-note { color: var(--muted); font-size: 11px; }
+.ql-metric strong { font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ql-negative { color: var(--down); }
+.ql-equity { margin-top: 18px; }
+.ql-equity-toolbar { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; min-height: 30px; }
+.ql-equity-key { font-weight: 600; }
+.ql-equity-key::before { content: ''; display: inline-block; width: 16px; height: 3px; margin-right: 8px; vertical-align: middle; background: var(--accent); }
+.ql-chart-check { display: inline-flex; gap: 5px; align-items: center; color: var(--muted); font-size: 12px; cursor: pointer; }
+.ql-chart-check input { accent-color: var(--accent); }
+.ql-chart-select, .ql-chart-button { font: inherit; font-size: 11px; padding: 4px 8px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+.ql-chart-button { margin-left: auto; }
+.ql-equity-readout { min-height: 28px; padding: 5px 0; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ql-equity-plot { position: relative; height: 245px; }
+.ql-equity-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+.ql-equity-canvas:active { cursor: grabbing; }
+.ql-equity-tooltip { position: absolute; z-index: 2; display: flex; flex-direction: column; gap: 5px; max-width: min(355px, calc(100% - 8px)); padding: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); border-radius: 5px; box-shadow: var(--shadow); pointer-events: none; font-size: 11px; }
+.ql-equity-tooltip[hidden] { display: none; }
+.ql-equity-help { color: var(--muted); font-size: 10px; padding-top: 5px; }
+.ql-script-modal { width: min(1000px, 100%); }
+.ql-script-source { width: 100%; min-height: 360px; resize: vertical; font: 12px/1.6 var(--mono); color: var(--text); background: var(--bg); border: 1px solid var(--border); padding: 12px; tab-size: 4; }
+.ql-axis { display: flex; justify-content: space-between; }
+.ql-result-note { line-height: 1.6; overflow-wrap: anywhere; }
+.ql-results summary { cursor: pointer; padding: 8px 0; }
+.ql-trades-scroll { overflow-x: auto; }
+.ql-trades { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.ql-trades th, .ql-trades td { padding: 8px; border-bottom: 1px solid var(--border); text-align: right; font-variant-numeric: tabular-nums; }
+.ql-trades th:first-child, .ql-trades td:first-child { text-align: left; }
+@media (max-width: 600px) { .ql-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .ql-result-body { padding: 12px; height: 55vh; } .ql-metric strong { font-size: 15px; } }
+@media (min-width: 1100px) { .ql-metrics { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; } .ql-metric { padding: 8px 10px; } .ql-metric strong { font-size: 15px; } }

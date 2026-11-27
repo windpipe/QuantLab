@@ -15,6 +15,8 @@ export interface LoaderHooks {
   onLoading?(loading: boolean): void;
   onLiveCandle?(candle: Candle): void;
   onStreamStatus?(status: StreamStatus): void;
+  /** Called after each accepted history page, including older pages. */
+  onHistoryLoaded?(): void;
   /** True while nothing may be requested from the source yet (a keyed source in a shared view). */
   held?(source: DataSource): boolean;
   /** Called on every first load with the held source, or null when the chart loads. */
@@ -63,6 +65,7 @@ export function createDataLoader(hooks: LoaderHooks): DataLoader & { generation(
         if (myGeneration !== generation) return; // symbol or timeframe changed meanwhile
         if (params.type === 'init') lastCandle = candles[candles.length - 1];
         params.callback(candles.map(candleToKLine), { forward: candles.length > 0, backward: false });
+        hooks.onHistoryLoaded?.();
       } catch (error) {
         if (myGeneration !== generation) return;
         const message = error instanceof Error ? error.message : String(error);

@@ -31,6 +31,7 @@ import { createWatchlist } from '../watchlist';
 
 /** The public parts of App these features use. */
 export interface FeatureApp {
+  onReplayChange?(active: boolean): void;
   toast(message: string, kind?: 'info' | 'error'): void;
   setSymbol(sourceId: string, meta: SymbolMeta): void;
   setTimeframe(id: TimeframeId): void;
@@ -420,13 +421,17 @@ export function createFeatures(deps: FeatureDeps): Features {
         'button',
         {
           class: 'tb-btn',
-          title: 'Bar replay: pick a start bar, then play forward',
-          onclick: () => replay!.pick(),
+          title: '차트 리플레이: 시작 시점과 배속 선택',
+          onclick: () => replay!.open(),
         },
         h('span', { html: REPLAY_ICON }),
         h('span', { class: 'tb-label' }, 'Replay'),
       );
-      replay.onChange(() => replayBtn.classList.toggle('active', replay!.active || replay!.state().picking));
+      replay.onChange(() => {
+        const active = replay!.active || replay!.state().picking;
+        replayBtn.classList.toggle('active', active);
+        deps.app.onReplayChange?.(active);
+      });
       const agentPanel = createAgentPanel({ storage: deps.storage, onChange: (s) => applyBridge(s) });
 
       const layoutControl = layout.createControl();
