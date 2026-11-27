@@ -22,3 +22,5 @@ Verified source E:/Projects/QuantLab and external data E:/QuantLabData. Feature 
 
 ## 2026-11-27 publication checkpoint
 Validated before publication: JS 662 passed, 3 optional real-data tests skipped; Python 16 passed with one Starlette deprecation warning; TypeScript, Vite and MCP builds passed. No new actual-data backtest run performed today. Browser visual checks remain pending. Publish branch codex/bootstrap-market-engine, keep main/develop unchanged until PR review. Market datasets/results stay external.
+
+2026-11-27 publication verified: origin/codex/bootstrap-market-engine contains c91bf53, 3b338e9 and 9de9430. Review PR #1 (draft): https://github.com/windpipe/QuantLab/pull/1. Not merged. Remote main remains 02eb2bc and develop 136ef96. Final documentation follow-up is pushed on the same branch.

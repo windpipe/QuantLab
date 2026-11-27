@@ -40,3 +40,5 @@ Acceptance: reproducible baseline commands and results, verified source map, ide
 Verify E: paths with user, perform P0 audit, and run Baseline #001 against actual Binance data as an independent reference test where feasible. Record data provenance, missing intervals, exact execution policy and measured results. Do not report the production Coverage Map as implemented.
 
 Publication: c91bf53 and 3b338e9 implement the tested engine/UI. Review the feature branch PR before merging to develop. Other-computer Double B work is not present in origin main/develop or PR search at this check; await user identification of its repository, branch or chat.
+
+2026-11-27 publication verified: origin/codex/bootstrap-market-engine contains c91bf53, 3b338e9 and 9de9430. Review PR #1 (draft): https://github.com/windpipe/QuantLab/pull/1. Not merged. Remote main remains 02eb2bc and develop 136ef96. Final documentation follow-up is pushed on the same branch.
