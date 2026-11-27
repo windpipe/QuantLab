@@ -1,10 +1,11 @@
 import type { Chart, KLineData } from 'klinecharts';
-import { candleToKLine } from '../chart/loader';
 import { getSource } from '../data/sources';
 import type { TimeframeId } from '../data/timeframes';
 import { h } from '../ui/dom';
+import { createModal } from '../ui/modal';
+import { replayHistory } from './history';
 import type { SwitchingLoader } from './loader';
-import { REPLAY_SPEEDS, ReplaySession, indexAtTime, stepInterval } from './session';
+import { REPLAY_SPEEDS, ReplaySession, indexAtTime, stepInterval, replayDate, replayTime, replaySpeed } from './session';
 
 export interface ReplayContext {
   source: string;
@@ -40,7 +41,6 @@ export interface ReplayState {
 }
 
 const iso = (t: number) => new Date(t).toISOString();
-const MAX_HISTORY_PAGES = 10;
 
 const ICON = {
   play: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg>',
@@ -69,6 +69,11 @@ export class ReplayController {
   private readonly speedSel: HTMLSelectElement;
   private readonly label: HTMLElement;
   private readonly hint: HTMLElement;
+  private readonly position: HTMLElement;
+  private readonly currentTimeLabel: HTMLElement;
+  private readonly progressLabel: HTMLElement;
+  private readonly progressBar: HTMLProgressElement;
+  private readonly follow: HTMLInputElement;
 
   constructor(private readonly options: ReplayOptions) {
     this.playBtn = h('button', { class: 'rp-btn', title: 'Play or pause (Space)', 'aria-label': 'Play', html: ICON.play, onclick: () => this.toggle() });
@@ -78,11 +83,13 @@ export class ReplayController {
       { class: 'rp-speed', title: 'Speed in bars per second', 'aria-label': 'Replay speed', onchange: () => this.setSpeed(Number(this.speedSel.value)) },
       ...REPLAY_SPEEDS.map((s) => h('option', { value: String(s) }, `${s}x`)),
     ) as HTMLSelectElement;
+    this.speedSel.value = String(this.speed);
     this.label = h('span', { class: 'rp-label' });
     this.bar = h(
       'div',
       { class: 'replay-bar', hidden: true, role: 'toolbar', 'aria-label': 'Bar replay' },
       h('span', { class: 'rp-title' }, 'Replay'),
+      h('button', { class: 'rp-btn', title: '날짜·시간으로 시작점 변경', 'aria-label': '리플레이 시작 시각 변경', onclick: () => this.open() }, '시점'),
       h('button', { class: 'rp-btn', title: 'Pick a new start bar', 'aria-label': 'Pick start bar', html: ICON.pick, onclick: () => this.pick() }),
       this.playBtn,
       this.stepBtn,
@@ -91,7 +98,16 @@ export class ReplayController {
       h('button', { class: 'rp-btn rp-exit', title: 'Exit replay and return to live (Esc)', 'aria-label': 'Exit replay', html: ICON.exit, onclick: () => this.stop() }),
     );
     this.hint = h('div', { class: 'replay-hint', hidden: true }, 'Click a bar to start replay from it. Esc cancels.');
-    options.container.append(this.bar, this.hint);
+    this.currentTimeLabel = h('strong', { class: 'rp-current-time' });
+    this.progressLabel = h('span', { class: 'rp-progress-label' });
+    this.progressBar = h('progress', { max: 100, value: 0, 'aria-label': '리플레이 진행률' });
+    this.follow = h('input', { type: 'checkbox', checked: true, onchange: () => { if (this.follow.checked) this.focusCurrent(); } });
+    this.position = h('section', { class: 'replay-position', hidden: true, 'aria-label': '리플레이 현재 위치' },
+      this.currentTimeLabel, this.progressLabel, this.progressBar,
+      h('div', { class: 'rp-position-actions' },
+        h('label', {}, this.follow, '현재 봉 따라가기'),
+        h('button', { class: 'btn', onclick: () => this.focusCurrent() }, '현재 봉으로')));
+    options.container.append(this.bar, this.hint, this.position);
 
     options.loader.onReplayInterrupted(() => {
       this.pause();
@@ -125,6 +141,39 @@ export class ReplayController {
   }
 
   private startTime: number | null = null;
+  private startGeneration = 0;
+
+  /** Time entry complements the existing chart-click picker. */
+  open(): void {
+    this.pause();
+    const bars = this.session ? this.session.all() : this.options.chart().getDataList();
+    const initial = this.startTime ?? bars[Math.max(0, bars.length - 101)]?.timestamp ?? Date.now();
+    const modal = createModal('차트 리플레이', { onClose: () => { this.startGeneration++; modal.root.remove(); } });
+    const date = h('input', { type: 'datetime-local', value: replayDate(initial), 'aria-label': '리플레이 시작 시각 KST', required: true });
+    const speed = h('select', { 'aria-label': '리플레이 배속' }, ...REPLAY_SPEEDS.map(value => h('option', { value: String(value) }, `${value}×`)));
+    speed.value = String(this.speed);
+    const status = h('p', { role: 'status', class: 'muted' });
+    const begin = h('button', { class: 'btn btn-primary', type: 'submit' }, '이 시점부터 재생');
+    const form = h('form', { class: 'rp-start-form' },
+      h('p', {}, '선택한 봉까지 표시하고 다음 봉부터 차례로 재생합니다. 미래 봉은 숨깁니다.'),
+      h('label', {}, '시작 날짜·시간 (KST)', date), h('label', {}, '재생 배속', speed),
+      h('p', { class: 'muted' }, '1× = 초당 1봉 · Space 재생/일시정지 · → 한 봉 이동 · Esc 종료. 저장된 데이터 범위 안에서 선택하세요.'),
+      status, h('div', { class: 'modal-actions' },
+        h('button', { class: 'btn', type: 'button', onclick: () => { modal.close(); this.pick(); } }, '차트에서 시작 봉 선택'), begin));
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      begin.disabled = true;
+      status.textContent = '시작 시점의 기록을 불러오는 중…';
+      try {
+        await this.start({ startTime: replayTime(date.value), speed: Number(speed.value), autoplay: true });
+        modal.close();
+      } catch (error) { status.textContent = error instanceof Error ? error.message : String(error); }
+      finally { begin.disabled = false; }
+    });
+    modal.body.append(form);
+    modal.open();
+    date.focus();
+  }
 
   /** Enters pick mode: the next click on the chart chooses the start bar. */
   pick(): void {
@@ -167,6 +216,7 @@ export class ReplayController {
 
   /** Starts (or restarts) replay. Without a start, it begins 100 bars back. */
   async start(opts: ReplayStartOptions = {}): Promise<ReplayState> {
+    const generation = ++this.startGeneration;
     if (this.picking) this.endPick();
     this.pause();
     const chart = this.options.chart();
@@ -178,6 +228,13 @@ export class ReplayController {
     const barsBack = opts.startTime === undefined ? (opts.barsBack ?? 100) : undefined;
     const needTime = opts.startTime;
     bars = await this.ensureHistory(bars, ctx, needTime, barsBack !== undefined ? barsBack + 1 : undefined);
+    const current = this.options.context();
+    if (generation !== this.startGeneration || current.source !== ctx.source || current.symbol !== ctx.symbol || current.timeframe !== ctx.timeframe) {
+      throw new Error('차트 또는 재생 요청이 변경되어 시작을 취소했습니다.');
+    }
+    if (needTime !== undefined && (!Number.isFinite(needTime) || needTime > bars[bars.length - 1].timestamp)) {
+      throw new Error('마지막 데이터보다 이전의 시작 시각을 선택해주세요.');
+    }
 
     let index: number;
     if (needTime !== undefined) {
@@ -198,6 +255,7 @@ export class ReplayController {
     if (opts.speed) this.setSpeed(opts.speed);
     this.options.loader.enterReplay({ initial: () => session.visible(), context: { ticker: symbol.ticker, period } });
     chart.resetData();
+    this.focusCurrent();
     this.render();
     if (opts.autoplay) this.play();
     this.emit();
@@ -206,14 +264,8 @@ export class ReplayController {
 
   /** Loads older pages from the exchange until the history covers what was asked for. */
   private async ensureHistory(bars: KLineData[], ctx: ReplayContext, fromTime?: number, count?: number): Promise<KLineData[]> {
-    const covered = () => (fromTime === undefined || bars[0].timestamp <= fromTime) && (count === undefined || bars.length >= count);
     const source = getSource(ctx.source);
-    for (let page = 0; page < MAX_HISTORY_PAGES && !covered(); page++) {
-      const older = await source.fetchCandles(ctx.symbol, ctx.timeframe, { before: bars[0].timestamp, limit: 1000 });
-      if (older.length === 0) break;
-      bars = older.map(candleToKLine).concat(bars);
-    }
-    return bars;
+    return replayHistory(bars, (before, limit) => source.fetchCandles(ctx.symbol, ctx.timeframe, { before, limit }), ctx.source === 'quantlab', fromTime, count);
   }
 
   step(count = 1): KLineData[] {
@@ -221,6 +273,7 @@ export class ReplayController {
     if (!s) throw new Error('Replay is not running. Start it first.');
     const revealed = s.step(count);
     for (const bar of revealed) this.options.loader.push(bar);
+    if (this.follow.checked && revealed.length) this.focusCurrent();
     if (s.done) {
       this.pause();
       this.options.toast('Replay reached the latest loaded bar');
@@ -252,8 +305,8 @@ export class ReplayController {
   }
 
   setSpeed(speed: number): void {
-    this.speed = Math.min(10, Math.max(1, Math.round(speed)));
-    this.speedSel.value = String(REPLAY_SPEEDS.find((s) => s >= this.speed) ?? 10);
+    this.speed = replaySpeed(speed);
+    this.speedSel.value = String(this.speed);
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = setInterval(() => this.step(1), stepInterval(this.speed));
@@ -263,6 +316,7 @@ export class ReplayController {
 
   /** Leaves replay and reloads live data. */
   stop(): void {
+    this.startGeneration++;
     if (this.picking) this.endPick();
     if (!this.session) return;
     this.pause();
@@ -303,14 +357,23 @@ export class ReplayController {
   private render(): void {
     const s = this.session;
     this.bar.hidden = s === null;
+    this.position.hidden = s === null;
     if (!s) return;
     const playing = this.timer !== null;
     this.playBtn.innerHTML = playing ? ICON.pause : ICON.play;
     this.playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
     this.playBtn.disabled = s.done;
     this.stepBtn.disabled = s.done;
-    const t = new Date(s.current().timestamp);
-    this.label.textContent = `${t.toISOString().slice(0, 16).replace('T', ' ')} UTC  ${s.remaining} bars left`;
+    this.label.textContent = `${replayDate(s.current().timestamp).replace('T', ' ')} KST · ${s.remaining.toLocaleString()}봉 남음`;
+    const progress = s.progress();
+    const phase = s.done ? '완료' : playing ? '재생 중' : '일시정지';
+    this.currentTimeLabel.textContent = `${phase} · 현재 봉 ${replayDate(s.current().timestamp).replace('T', ' ')} KST`;
+    this.progressLabel.textContent = `시작 ${replayDate(this.startTime!).replace('T', ' ')} → 끝 ${replayDate(progress.endTime).replace('T', ' ')} KST · ${progress.elapsed.toLocaleString()} / ${progress.total.toLocaleString()}봉 (${progress.percent.toFixed(1)}%)`;
+    this.progressBar.value = progress.percent;
+  }
+
+  private focusCurrent(): void {
+    if (this.session) this.options.chart().scrollToRealTime(0);
   }
 
   private emit(): void {

@@ -1,0 +1,21 @@
+//@version=5
+// QuantLab public reference strategy from docs/windpipe/BASELINE_001.md.
+// BTCUSDT spot, 5m; load 60 warm-up bars before 2026-11-01 00:00 KST.
+// The editor runs loaded chart bars. The saved full-period Python report is separate.
+// Reserve entry commission: cash-inclusive sizing = 100 / (1 + 0.001) percent.
+strategy("QuantLab Baseline 001 - Triple SMA", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=99.9000999000999, commission_type=strategy.commission.percent, commission_value=0.1)
+
+fast = ta.sma(close, 5)
+mid = ta.sma(close, 20)
+slow = ta.sma(close, 60)
+
+// [2026-11-01 00:00 KST, 2026-11-24 00:00 KST), UTC milliseconds.
+if time >= 1793458800000 and time < 1795446000000
+    if strategy.position_size == 0 and fast > mid and mid > slow
+        strategy.entry("Long", strategy.long)
+    if strategy.position_size > 0 and fast < mid and mid < slow
+        strategy.close("Long")
+
+plot(fast, "SMA 5", color.orange, 2)
+plot(mid, "SMA 20", color.red, 2)
+plot(slow, "SMA 60", color.blue, 2)

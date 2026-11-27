@@ -32,6 +32,9 @@ import { createUpdateBanner } from './update';
 import { CompareController, type CompareReport } from './compare/controller';
 import { createComparePanel, type ComparePanel } from './compare/panel';
 import { MAX_COMPARE, type CompareSymbol } from './compare/series';
+import { createQuantLabResults, fetchQuantLabReport, type QuantLabReport } from './ui/quantlabResults';
+import { baselineFillOverlays, QUANTLAB_FILL_GROUP } from './chart/quantlabFills';
+import { QuantLabSource } from './data/quantlab-source';
 
 const DRAWINGS_GROUP = 'drawings';
 const CANDLE_PANE = 'candle_pane';
@@ -112,6 +115,13 @@ export class App {
   private readonly compareSearch;
   private readonly comparePanel: ComparePanel;
   private topbar!: TopbarFit;
+  private quantlabReport: QuantLabReport | null = null;
+  private quantlabRequest: Promise<QuantLabReport> | null = null;
+  private quantlabReplay = false;
+  private readonly quantlabResults = createQuantLabResults(() => this.chart?.resize(), (report) => {
+    this.quantlabReport = report;
+    void this.refreshQuantLabFills();
+  });
 
   constructor(
     private readonly root: HTMLElement,
@@ -197,6 +207,7 @@ export class App {
           this.features.onLiveCandle(candle);
         },
         onStreamStatus: (status) => this.setStreamStatus(status),
+        onHistoryLoaded: () => void this.refreshQuantLabFills(),
         held: (source) => keyGate().holds(source.id),
         onHeld: (source) => this.keyCover.show(source),
       })),
@@ -283,7 +294,7 @@ export class App {
 
     this.renderDrawbar();
     const workspace = h('main', { class: 'workspace' }, this.el.drawbar, h('div', { class: 'chart-wrap' }, this.el.chart, this.el.loading, this.keyCover.el));
-    this.root.replaceChildren(topbar, workspace, this.el.toasts);
+    this.root.replaceChildren(topbar, workspace, this.quantlabResults.root, this.el.toasts);
   }
 
   private renderDrawbar(): void {
@@ -325,6 +336,10 @@ export class App {
   }
 
   private updateHeader(): void {
+    this.quantlabResults.root.hidden = this.quantlabReplay;
+    if (this.layout.source !== 'quantlab' || this.layout.symbol !== 'BTCUSDT' || this.layout.timeframe !== '5m') {
+      this.chart.removeOverlay({ groupId: QUANTLAB_FILL_GROUP });
+    }
     const source = getSource(this.layout.source);
     this.el.symbolBtn.replaceChildren(
       h('span', { html: ICONS.search, class: 'symbol-icon' }),
@@ -346,6 +361,32 @@ export class App {
   }
 
   // ---------------------------------------------------------------- symbol + timeframe
+
+  onReplayChange(active: boolean): void {
+    this.quantlabReplay = active;
+    this.quantlabResults.root.hidden = active;
+    this.chart.removeOverlay({ groupId: QUANTLAB_FILL_GROUP });
+    if (!active) void this.refreshQuantLabFills();
+  }
+
+  private async refreshQuantLabFills(): Promise<void> {
+    if (this.quantlabReplay || this.layout.source !== 'quantlab' || this.layout.symbol !== 'BTCUSDT' || this.layout.timeframe !== '5m') return;
+    try {
+      if (!this.quantlabReport) {
+        this.quantlabRequest ??= fetchQuantLabReport();
+        this.quantlabReport = await this.quantlabRequest;
+      }
+      if (this.quantlabReplay || this.layout.source !== 'quantlab' || this.layout.symbol !== 'BTCUSDT' || this.layout.timeframe !== '5m') return;
+      const source = getSource('quantlab');
+      this.chart.removeOverlay({ groupId: QUANTLAB_FILL_GROUP });
+      if (!(source instanceof QuantLabSource) || source.snapshotFor('BTCUSDT', '5m') !== this.quantlabReport.summary.snapshot.revision) return;
+      const overlays = baselineFillOverlays(this.quantlabReport.trades, this.chart.getDataList());
+      if (overlays.length) this.chart.createOverlay(overlays);
+    } catch (error) {
+      this.quantlabRequest = null;
+      this.toast(`Baseline BUY/SELL markers unavailable: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    }
+  }
 
   /** Uses the cached symbol list when present, otherwise asks the exchange about one symbol. */
   private async lookupMeta(sourceId: string, symbol: string): Promise<SymbolMeta | null> {

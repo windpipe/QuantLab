@@ -8,6 +8,7 @@ import { KrakenSource } from './kraken';
 import { OkxSource } from './okx';
 import { PolygonSource } from './polygon';
 import { TwelveDataSource } from './twelvedata';
+import { QuantLabSource } from './quantlab-source';
 import type { DataSource, MarketType, SymbolMeta } from './types';
 import type { KeyValueStorage } from '../store/layout';
 import { APP } from '../config';
@@ -23,6 +24,7 @@ export const SOURCES: readonly DataSource[] = [
   new AlpacaSource(),
   new PolygonSource(),
   new CsvSource(),
+  new QuantLabSource(),
 ];
 
 /** Markets a source covers; sources that do not say are crypto exchanges. */

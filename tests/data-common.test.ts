@@ -252,7 +252,7 @@ describe('openManagedSocket heartbeat', () => {
 
 describe('source registry', () => {
   it('lists the keyless exchanges and the keyed providers with sign-up links', () => {
-    expect(SOURCES.map((s) => s.id)).toEqual(['binance', 'coinbase', 'bybit', 'okx', 'kraken', 'twelvedata', 'alpaca', 'polygon', 'csv']);
+    expect(SOURCES.map((s) => s.id)).toEqual(['binance', 'coinbase', 'bybit', 'okx', 'kraken', 'twelvedata', 'alpaca', 'polygon', 'csv', 'quantlab']);
     for (const s of SOURCES.filter((x) => x.auth)) expect(s.auth!.signupUrl).toMatch(/^https:\/\//);
     expect(sourceMarkets(getSource('binance'))).toEqual(['crypto']);
     expect(sourceMarkets(getSource('twelvedata'))).toContain('forex');

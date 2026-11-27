@@ -1,0 +1,37 @@
+//@version=5
+// Independently authored research interpretation of Kim Jikseon's public Double B lesson.
+// Source: https://www.youtube.com/watch?v=K3hrW4jEEnw (04:40-06:30).
+// Not the author's official automated system. No claimed win rate.
+// Spot adaptation: long-only. Upper-band events close a long, never open a short.
+// QuantLab assumptions: confirm at close, fill next open; optional reentry filter;
+// close at SMA20, upper double-touch, or close-based percentage stop.
+strategy("Double B - experimental spot", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=99.9000999000999, commission_type=strategy.commission.percent, commission_value=0.1)
+
+stopPct = input.float(1.0, "Stop loss percent", minval=0.1, maxval=50)
+requireReentry = input.bool(true, "Require band reentry")
+
+basis20 = ta.sma(close, 20)
+dev20 = ta.stdev(close, 20) * 2
+upper20 = basis20 + dev20
+lower20 = basis20 - dev20
+basis4 = ta.sma(open, 4)
+dev4 = ta.stdev(open, 4) * 4
+upper4 = basis4 + dev4
+lower4 = basis4 - dev4
+
+lowerTouch = low <= lower20 and low <= lower4
+upperTouch = high >= upper20 and high >= upper4
+reentered = close > lower20 and close > lower4
+
+if time >= 1793458800000 and time < 1795446000000
+    if strategy.position_size == 0 and lowerTouch and (not requireReentry or reentered)
+        strategy.entry("Long", strategy.long)
+    if strategy.position_size > 0
+        if close >= basis20 or upperTouch or close <= strategy.position_avg_price * (1 - stopPct / 100)
+            strategy.close("Long")
+
+plot(basis20, "SMA20", color.orange, 1)
+plot(upper20, "BB20 upper", color.blue, 1)
+plot(lower20, "BB20 lower", color.blue, 1)
+plot(upper4, "BB4 upper", color.red, 1)
+plot(lower4, "BB4 lower", color.red, 1)
